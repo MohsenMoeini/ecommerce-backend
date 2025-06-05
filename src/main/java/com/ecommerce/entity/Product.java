@@ -32,13 +32,30 @@ public class Product {
 
     private BigDecimal discountPrice;
 
-    @Column(nullable = false)
-    private Integer stockQuantity;
+    // stockQuantity will be computed from Inventory entries
+    @Transient
+    private Integer totalStockQuantity;
 
     @Column(nullable = false)
     private String sku;
 
     private String imageUrl;
+    
+    private String brand;
+    
+    private String manufacturer;
+    
+    private Double weight;
+    
+    private String weightUnit;
+    
+    private Double width;
+    
+    private Double height;
+    
+    private Double depth;
+    
+    private String dimensionUnit;
 
     @Column(nullable = false)
     private Boolean active = true;
@@ -60,6 +77,9 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
     private Set<OrderItem> orderItems = new HashSet<>();
     
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL)
+    private Set<Inventory> inventoryItems = new HashSet<>();
+    
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -69,5 +89,30 @@ public class Product {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+    
+    // Calculate total stock quantity across all warehouses
+    public Integer getTotalStockQuantity() {
+        if (inventoryItems == null || inventoryItems.isEmpty()) {
+            return 0;
+        }
+        return inventoryItems.stream()
+                .mapToInt(Inventory::getQuantity)
+                .sum();
+    }
+    
+    // Calculate available stock (not reserved) across all warehouses
+    public Integer getAvailableStockQuantity() {
+        if (inventoryItems == null || inventoryItems.isEmpty()) {
+            return 0;
+        }
+        return inventoryItems.stream()
+                .mapToInt(Inventory::getAvailableQuantity)
+                .sum();
+    }
+    
+    // Check if product is in stock
+    public boolean isInStock() {
+        return getAvailableStockQuantity() > 0;
     }
 }
