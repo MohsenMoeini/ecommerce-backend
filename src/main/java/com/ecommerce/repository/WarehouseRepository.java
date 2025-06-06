@@ -12,4 +12,5 @@ public interface WarehouseRepository extends JpaRepository<Warehouse, Long> {
     Optional<Warehouse> findByName(String name);
     List<Warehouse> findByLocation(String location);
     boolean existsByName(String name);
+    List<Warehouse> findByActiveTrue();
 }
