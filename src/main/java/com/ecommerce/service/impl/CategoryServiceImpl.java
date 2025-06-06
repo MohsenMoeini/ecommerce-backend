@@ -64,7 +64,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public List<Category> getSubcategories(Long parentCategoryId) {
-        return categoryRepository.findByParentCategoryId(parentCategoryId);
+        return categoryRepository.findByParentId(parentCategoryId);
     }
 
     @Override
@@ -76,7 +76,7 @@ public class CategoryServiceImpl implements CategoryService {
         }
         
         // Check if category has subcategories
-        List<Category> subcategories = categoryRepository.findByParentCategoryId(categoryId);
+        List<Category> subcategories = categoryRepository.findByParentId(categoryId);
         if (!subcategories.isEmpty()) {
             throw new RuntimeException("Cannot delete category with subcategories. Delete subcategories first.");
         }

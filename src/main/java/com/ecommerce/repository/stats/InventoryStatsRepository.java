@@ -10,11 +10,11 @@ import java.util.List;
 @Repository
 public interface InventoryStatsRepository extends JpaRepository<Inventory, Long> {
 
-    @Query("SELECT w.name, COUNT(i), SUM(i.quantityAvailable) FROM Inventory i " +
+    @Query("SELECT w.name, COUNT(i), SUM(i.quantity) FROM Inventory i " +
            "JOIN i.warehouse w GROUP BY w.name")
     List<Object[]> getInventorySummaryByWarehouse();
     
-    @Query(value = "SELECT p.name, SUM(i.quantity_available) as total_stock, " +
+    @Query(value = "SELECT p.name, SUM(i.quantity) as total_stock, " +
            "SUM(i.quantity_reserved) as total_reserved " +
            "FROM inventory i JOIN product p ON i.product_id = p.id " +
            "GROUP BY p.id ORDER BY total_stock DESC",
@@ -22,8 +22,8 @@ public interface InventoryStatsRepository extends JpaRepository<Inventory, Long>
     List<Object[]> getProductStockSummary();
     
     @Query(value = "SELECT w.name as warehouse, w.location, COUNT(i.id) as product_count, " +
-           "SUM(i.quantity_available) as total_quantity, " +
-           "SUM(i.quantity_available * p.price) as total_value " +
+           "SUM(i.quantity) as total_quantity, " +
+           "SUM(i.quantity * p.price) as total_value " +
            "FROM inventory i " +
            "JOIN warehouse w ON i.warehouse_id = w.id " +
            "JOIN product p ON i.product_id = p.id " +
@@ -31,8 +31,8 @@ public interface InventoryStatsRepository extends JpaRepository<Inventory, Long>
            nativeQuery = true)
     List<Object[]> getWarehouseValueSummary();
     
-    @Query(value = "SELECT c.name as category, SUM(i.quantity_available) as quantity, " +
-           "SUM(i.quantity_available * p.price) as inventory_value " +
+    @Query(value = "SELECT c.name as category, SUM(i.quantity) as quantity, " +
+           "SUM(i.quantity * p.price) as inventory_value " +
            "FROM inventory i " +
            "JOIN product p ON i.product_id = p.id " +
            "JOIN category c ON p.category_id = c.id " +
@@ -41,7 +41,7 @@ public interface InventoryStatsRepository extends JpaRepository<Inventory, Long>
     List<Object[]> getInventoryValueByCategory();
     
     @Query(value = "SELECT p.id, p.name, " +
-           "SUM(i.quantity_available) as available, " +
+           "SUM(i.quantity) as available, " +
            "SUM(i.quantity_reserved) as reserved, " +
            "(SELECT COALESCE(SUM(oi.quantity), 0) FROM order_item oi " +
            "JOIN orders o ON oi.order_id = o.id " +

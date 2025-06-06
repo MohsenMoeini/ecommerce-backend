@@ -36,6 +36,9 @@ public class Product {
     @Transient
     private Integer totalStockQuantity;
 
+    @Column(name = "sales_count")
+    private Integer salesCount = 0;
+
     @Column(nullable = false)
     private String sku;
 
