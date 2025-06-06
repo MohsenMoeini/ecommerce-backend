@@ -1,9 +1,11 @@
 package com.ecommerce.exception;
 
+import com.ecommerce.dto.response.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.security.SignatureException;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -14,7 +16,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,50 +23,69 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<ApiException> handleBadCredentialsException(BadCredentialsException e) {
-        return createErrorResponse("Invalid username or password", HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ApiResponse<?>> handleBadCredentialsException(BadCredentialsException e) {
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error("Invalid username or password", HttpStatus.UNAUTHORIZED.value()));
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ApiException> handleUsernameNotFoundException(UsernameNotFoundException e) {
-        return createErrorResponse(e.getMessage(), HttpStatus.NOT_FOUND);
+    public ResponseEntity<ApiResponse<?>> handleUsernameNotFoundException(UsernameNotFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(e.getMessage(), HttpStatus.NOT_FOUND.value()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiException> handleAccessDeniedException(AccessDeniedException e) {
-        return createErrorResponse("Access denied: You don't have permission to access this resource", HttpStatus.FORBIDDEN);
+    public ResponseEntity<ApiResponse<?>> handleAccessDeniedException(AccessDeniedException e) {
+        return ResponseEntity
+                .status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error("You don't have permission to access this resource", HttpStatus.FORBIDDEN.value()));
     }
 
-    @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<ApiException> handleExpiredJwtException(ExpiredJwtException e) {
-        return createErrorResponse("JWT token has expired", HttpStatus.UNAUTHORIZED);
-    }
-
-    @ExceptionHandler({MalformedJwtException.class, SignatureException.class, JwtException.class})
-    public ResponseEntity<ApiException> handleJwtException(JwtException e) {
-        return createErrorResponse("Invalid JWT token", HttpStatus.UNAUTHORIZED);
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleEntityNotFoundException(EntityNotFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(e.getMessage(), HttpStatus.NOT_FOUND.value()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException e) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
+        e.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.<Map<String, String>>builder()
+                        .success(false)
+                        .message("Validation failed")
+                        .data(errors)
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .build());
+    }
+
+    @ExceptionHandler({ExpiredJwtException.class, MalformedJwtException.class, SignatureException.class, JwtException.class})
+    public ResponseEntity<ApiResponse<?>> handleJwtExceptions(Exception e) {
+        String message = "Invalid or expired token";
+        if (e instanceof ExpiredJwtException) {
+            message = "Token has expired";
+        }
+        
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(message, HttpStatus.UNAUTHORIZED.value()));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiException> handleGlobalException(Exception e) {
-        return createErrorResponse("An unexpected error occurred: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    private ResponseEntity<ApiException> createErrorResponse(String message, HttpStatus status) {
-        return new ResponseEntity<>(
-                new ApiException(message, status, LocalDateTime.now()),
-                status
-        );
+    public ResponseEntity<ApiResponse<?>> handleGenericException(Exception e) {
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ApiResponse.error("An unexpected error occurred: " + e.getMessage(), 
+                        HttpStatus.INTERNAL_SERVER_ERROR.value()));
     }
 }
